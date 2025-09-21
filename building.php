@@ -209,56 +209,13 @@ $popularSearches = getPopularSearches($lang);
                             <?php echo $lang === 'ja' ? '建築物が見つかりませんでした。' : 'No buildings found.'; ?>
                         </div>
                     <?php else: ?>
-                        <div class="row">
-                            <!-- 建築物カード一覧 -->
-                            <div class="col-lg-8">
-                                <div class="row" id="building-cards">
-                                    <?php foreach ($architectBuildings as $index => $building): ?>
-                                        <div class="col-md-6 col-lg-6 mb-4">
-                                            <?php include 'includes/building_card.php'; ?>
-                                        </div>
-                                    <?php endforeach; ?>
+                        <!-- 建築物カード一覧 -->
+                        <div id="building-cards">
+                            <?php foreach ($architectBuildings as $index => $building): ?>
+                                <div class="mb-3">
+                                    <?php include 'includes/building_card.php'; ?>
                                 </div>
-                            </div>
-                            
-                            <!-- 地図と人気の検索 -->
-                            <div class="col-lg-4">
-                                <div class="sticky-top" style="top: 20px;">
-                                    <!-- Map -->
-                                    <div class="card mb-4">
-                                        <div class="card-body p-0">
-                                            <div id="map" style="height: 400px; width: 100%;"></div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Popular Searches -->
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h6 class="mb-0">
-                                                <i class="fas fa-fire me-2"></i>
-                                                <?php echo t('popularSearches', $lang); ?>
-                                            </h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <?php if (!empty($popularSearches)): ?>
-                                                <div class="list-group list-group-flush">
-                                                    <?php foreach ($popularSearches as $search): ?>
-                                                        <a href="?q=<?php echo urlencode($search['query']); ?>&lang=<?php echo $lang; ?>" 
-                                                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                                            <span><?php echo htmlspecialchars($search['query']); ?></span>
-                                                            <span class="badge bg-primary rounded-pill"><?php echo $search['count']; ?></span>
-                                                        </a>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            <?php else: ?>
-                                                <p class="text-muted mb-0">
-                                                    <?php echo $lang === 'ja' ? '人気の検索がありません。' : 'No popular searches available.'; ?>
-                                                </p>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 <?php else: ?>
@@ -443,10 +400,75 @@ $popularSearches = getPopularSearches($lang);
                 </div>
             </div>
             
-            <?php if (!$architectSlug): ?>
-            <!-- Sidebar (個別建築物表示の場合のみ) -->
+            <!-- Sidebar -->
             <div class="col-lg-4">
                 <div class="sticky-top" style="top: 20px;">
+                    <?php if ($architectSlug): ?>
+                        <!-- Search Form (建築家の建築物リスト表示の場合) -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <form method="GET" action="index.php" class="mb-3">
+                                    <input type="hidden" name="lang" value="<?php echo $lang; ?>">
+                                    
+                                    <div class="input-group mb-3">
+                                        <input type="text" 
+                                               class="form-control" 
+                                               name="q" 
+                                               placeholder="<?php echo t('searchPlaceholder', $lang); ?>"
+                                               value="">
+                                        <button class="btn btn-primary" type="submit">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2 mb-3">
+                                        <button type="button" 
+                                                class="btn btn-outline-info" 
+                                                id="getLocationBtn"
+                                                onclick="getCurrentLocation()">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            <?php echo t('currentLocation', $lang); ?>
+                                        </button>
+                                        
+                                        <button type="button" 
+                                                class="btn btn-outline-secondary" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#advancedSearch" 
+                                                aria-expanded="false">
+                                            <i class="fas fa-chevron-down me-1"></i>
+                                            <?php echo t('detailedSearch', $lang); ?>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="collapse" id="advancedSearch">
+                                        <div class="card card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
+                                                       name="photos" 
+                                                       value="1" 
+                                                       id="photosFilter">
+                                                <label class="form-check-label" for="photosFilter">
+                                                    <?php echo t('withPhotos', $lang); ?>
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
+                                                       name="videos" 
+                                                       value="1" 
+                                                       id="videosFilter">
+                                                <label class="form-check-label" for="videosFilter">
+                                                    <?php echo t('withVideos', $lang); ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
                     <!-- Map -->
                     <div class="card mb-4">
                         <div class="card-body p-0">
@@ -482,7 +504,6 @@ $popularSearches = getPopularSearches($lang);
                     </div>
                 </div>
             </div>
-            <?php endif; ?>
         </div>
     </div>
     
@@ -516,6 +537,40 @@ $popularSearches = getPopularSearches($lang);
                 initMap([building.lat, building.lng], [building]);
             <?php endif; ?>
         });
+        
+        // 現在地取得機能
+        function getCurrentLocation() {
+            const btn = document.getElementById('getLocationBtn');
+            const originalText = btn.innerHTML;
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>取得中...';
+            btn.disabled = true;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+
+                        const currentUrl = new URL(window.location);
+                        currentUrl.searchParams.set('lat', lat);
+                        currentUrl.searchParams.set('lng', lng);
+                        currentUrl.searchParams.set('radius', '5'); // Default 5km
+                        currentUrl.searchParams.delete('q'); // Clear keyword search
+                        window.location.href = currentUrl.toString();
+                    },
+                    function(error) {
+                        alert('位置情報の取得に失敗しました: ' + error.message);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                );
+            } else {
+                alert('このブラウザは位置情報をサポートしていません。');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>

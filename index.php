@@ -126,7 +126,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         </div>
                     <?php else: ?>
                         <?php foreach ($buildings as $index => $building): ?>
-                            <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="col-12 mb-4">
                                 <?php include 'includes/building_card.php'; ?>
                             </div>
                         <?php endforeach; ?>
