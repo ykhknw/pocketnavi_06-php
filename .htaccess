@@ -1,0 +1,34 @@
+RewriteEngine On
+
+# Redirect /buildings/{slug} to index.php?building_slug={slug}
+RewriteRule ^buildings/([^/]+)/?$ index.php?building_slug=$1 [L,QSA]
+
+# Optional: Redirect /buildings/{slug}/ to /buildings/{slug} (remove trailing slash)
+RewriteRule ^buildings/([^/]+)/$ /buildings/$1 [R=301,L]
+
+# Redirect /architects/{slug} to /architects/{slug}/ (add trailing slash)
+RewriteRule ^architects/([^/]+)$ /architects/$1/ [R=301,L]
+
+# Redirect /architects/{slug}/?completionYears=...&prefectures=...&q=... to index.php?architects_slug={slug}&completionYears=...&prefectures=...&q=...
+RewriteRule ^architects/([^/]+)/\?completionYears=(.+?)&prefectures=(.+?)&q=(.+)$ index.php?architects_slug=$1&completionYears=$2&prefectures=$3&q=$4 [L,QSA]
+
+# Redirect /architects/{slug}/?completionYears=...&prefectures=... to index.php?architects_slug={slug}&completionYears=...&prefectures=...
+RewriteRule ^architects/([^/]+)/\?completionYears=(.+?)&prefectures=(.+)$ index.php?architects_slug=$1&completionYears=$2&prefectures=$3 [L,QSA]
+
+# Redirect /architects/{slug}/?completionYears=...&q=... to index.php?architects_slug={slug}&completionYears=...&q=...
+RewriteRule ^architects/([^/]+)/\?completionYears=(.+?)&q=(.+)$ index.php?architects_slug=$1&completionYears=$2&q=$3 [L,QSA]
+
+# Redirect /architects/{slug}/?prefectures=...&q=... to index.php?architects_slug={slug}&prefectures=...&q=...
+RewriteRule ^architects/([^/]+)/\?prefectures=(.+?)&q=(.+)$ index.php?architects_slug=$1&prefectures=$2&q=$3 [L,QSA]
+
+# Redirect /architects/{slug}/?completionYears=... to index.php?architects_slug={slug}&completionYears=...
+RewriteRule ^architects/([^/]+)/\?completionYears=(.+)$ index.php?architects_slug=$1&completionYears=$2 [L,QSA]
+
+# Redirect /architects/{slug}/?prefectures=... to index.php?architects_slug={slug}&prefectures=...
+RewriteRule ^architects/([^/]+)/\?prefectures=(.+)$ index.php?architects_slug=$1&prefectures=$2 [L,QSA]
+
+# Redirect /architects/{slug}/?q=... to index.php?architects_slug={slug}&q=...
+RewriteRule ^architects/([^/]+)/\?q=(.+)$ index.php?architects_slug=$1&q=$2 [L,QSA]
+
+# Redirect /architects/{slug}/ to index.php?architects_slug={slug} (basic rule - must be last)
+RewriteRule ^architects/([^/]+)/$ index.php?architects_slug=$1 [L,QSA]

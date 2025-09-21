@@ -20,6 +20,9 @@ function initMap(center = [35.6762, 139.6503], buildings = []) {
     // ズームコントロールの位置調整
     map.zoomControl.setPosition('bottomleft');
     
+    // ページ情報を再確認
+    console.log('initMap - Page info:', window.pageInfo);
+    
     // マーカーの追加
     addMarkers(buildings);
     
@@ -35,6 +38,10 @@ function addMarkers(buildings) {
     // 既存のマーカーを削除
     markers.forEach(marker => map.removeLayer(marker));
     markers = [];
+    
+    // ページ情報を取得（通し番号計算用）
+    const pageInfo = window.pageInfo || { currentPage: 1, limit: 10 };
+    console.log('Page info for markers:', pageInfo); // デバッグ用
     
     buildings.forEach((building, index) => {
         if (building.lat && building.lng && building.lat !== 0 && building.lng !== 0) {
@@ -52,9 +59,11 @@ function addMarkers(buildings) {
                     shadowSize: [41, 41]
                 });
             } else {
-                // 一覧ページ用の数字付きマーカー
+                // 一覧ページ用の数字付きマーカー（通し番号）
+                const globalIndex = (pageInfo.currentPage - 1) * pageInfo.limit + index + 1;
+                console.log(`Marker ${index}: local=${index + 1}, global=${globalIndex}, page=${pageInfo.currentPage}, limit=${pageInfo.limit}`); // デバッグ用
                 icon = L.divIcon({
-                    html: `<div style="background-color: #2563eb; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${index + 1}</div>`,
+                    html: `<div style="background-color: #2563eb; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${globalIndex}</div>`,
                     className: 'custom-marker',
                     iconSize: [32, 32],
                     iconAnchor: [16, 16]
@@ -66,6 +75,14 @@ function addMarkers(buildings) {
                     closeButton: true,
                     autoClose: false,
                     closeOnClick: false
+                })
+                .on('popupopen', function() {
+                    // ポップアップが開かれた時にLucideアイコンを初期化
+                    setTimeout(() => {
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    }, 100);
                 });
             
             markers.push(marker);
@@ -74,23 +91,10 @@ function addMarkers(buildings) {
     });
 }
 
-// ポップアップコンテンツの作成
+// ポップアップコンテンツの作成（PHPで生成されたHTMLを使用）
 function createPopupContent(building) {
-    const lang = document.documentElement.lang || 'ja';
-    const title = lang === 'ja' ? building.title : building.titleEn;
-    const location = lang === 'ja' ? building.location : building.locationEn;
-    
-    return `
-        <div style="padding: 8px; min-width: 200px;">
-            <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">
-                <a href="building.php?slug=${building.slug}&lang=${lang}" 
-                   style="color: #1e40af; text-decoration: none;">
-                    ${title}
-                </a>
-            </h3>
-            ${location ? `<div style="margin-bottom: 8px;"><strong>${lang === 'ja' ? '所在地' : 'Location'}:</strong> ${location}</div>` : ''}
-        </div>
-    `;
+    // PHPで生成されたHTMLを直接使用
+    return building.popupContent || '';
 }
 
 // 現在地の取得
@@ -98,7 +102,12 @@ function getCurrentLocation() {
     const btn = document.getElementById('getLocationBtn');
     const originalText = btn.innerHTML;
     
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>取得中...';
+    // 現在の言語を取得
+    const currentUrl = new URL(window.location);
+    const lang = currentUrl.searchParams.get('lang') || 'ja';
+    const loadingText = lang === 'ja' ? '取得中...' : 'Getting...';
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + loadingText;
     btn.disabled = true;
     
     if (navigator.geolocation) {
@@ -109,21 +118,33 @@ function getCurrentLocation() {
                 
                 // 現在地検索のURLにリダイレクト
                 const currentUrl = new URL(window.location);
+                
+                // 現在地検索以外のパラメータを削除（langは保持）
+                const lang = currentUrl.searchParams.get('lang') || 'ja';
+                currentUrl.search = ''; // 全てのパラメータをクリア
+                
+                // 現在地検索用のパラメータを設定
+                currentUrl.searchParams.set('lang', lang);
                 currentUrl.searchParams.set('lat', lat);
                 currentUrl.searchParams.set('lng', lng);
                 currentUrl.searchParams.set('radius', '5'); // デフォルト5km
-                currentUrl.searchParams.delete('q'); // キーワード検索をクリア
                 
                 window.location.href = currentUrl.toString();
             },
             function(error) {
-                alert('位置情報の取得に失敗しました: ' + error.message);
+                const errorMessage = lang === 'ja' 
+                    ? '位置情報の取得に失敗しました: ' + error.message
+                    : 'Failed to get location: ' + error.message;
+                alert(errorMessage);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         );
     } else {
-        alert('このブラウザは位置情報をサポートしていません。');
+        const errorMessage = lang === 'ja' 
+            ? 'このブラウザは位置情報をサポートしていません。'
+            : 'This browser does not support geolocation.';
+        alert(errorMessage);
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
@@ -170,8 +191,69 @@ function openVideo(url) {
     window.open(url, '_blank');
 }
 
+// 写真を開く
+function openPhoto(url) {
+    window.open(url, '_blank');
+}
+
+// 付近を検索
+function searchNearby(lat, lng) {
+    const currentUrl = new URL(window.location);
+    
+    // 現在地検索以外のパラメータを削除（langは保持）
+    const lang = currentUrl.searchParams.get('lang') || 'ja';
+    currentUrl.search = ''; // 全てのパラメータをクリア
+    
+    // 付近検索用のパラメータを設定
+    currentUrl.searchParams.set('lang', lang);
+    currentUrl.searchParams.set('lat', lat);
+    currentUrl.searchParams.set('lng', lng);
+    currentUrl.searchParams.set('radius', '5'); // デフォルト5km
+    
+    window.location.href = currentUrl.toString();
+}
+
+// 経路を検索
+function getDirections(lat, lng) {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    window.open(url, '_blank');
+}
+
+// グーグルマップで見る
+function viewOnGoogleMaps(lat, lng) {
+    const url = `https://maps.google.com/?q=${lat},${lng}`;
+    window.open(url, '_blank');
+}
+
+// 言語切り替え機能
+function initLanguageSwitch() {
+    const languageSwitch = document.getElementById('languageSwitch');
+    if (languageSwitch) {
+        languageSwitch.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 現在のURLを取得
+            const currentUrl = new URL(window.location);
+            const currentLang = currentUrl.searchParams.get('lang') || 'ja';
+            
+            // 言語を切り替え
+            const newLang = currentLang === 'ja' ? 'en' : 'ja';
+            currentUrl.searchParams.set('lang', newLang);
+            
+            // ページをリロード
+            window.location.href = currentUrl.toString();
+        });
+    }
+}
+
 // ページ読み込み時の初期化
 document.addEventListener('DOMContentLoaded', function() {
+    // 言語切り替え機能の初期化
+    initLanguageSwitch();
+    
+    // ページ情報を確認
+    console.log('DOMContentLoaded - Page info:', window.pageInfo);
+    
     // 建築物データの取得
     const buildingCards = document.querySelectorAll('.building-card');
     console.log('Found building cards:', buildingCards.length); // デバッグ用
@@ -197,7 +279,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 titleEn: card.dataset['title-en'], // ハイフンを含む属性名は角括弧でアクセス
                 location: card.dataset.location,
                 locationEn: card.dataset['location-en'], // ハイフンを含む属性名は角括弧でアクセス
-                slug: card.dataset.slug
+                slug: card.dataset.slug,
+                popupContent: card.dataset.popupContent // PHPで生成されたポップアップHTML
             };
         }
         return null;
@@ -205,17 +288,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Buildings for map:', buildings); // デバッグ用
     
-    // 地図の初期化
+    // 地図の初期化（ページ情報の設定を待つ）
     if (document.getElementById('map')) {
-        if (buildings.length > 0) {
-            // 建築物がある場合は、最初の建築物を中心に設定
-            const centerLat = buildings[0].lat;
-            const centerLng = buildings[0].lng;
-            initMap([centerLat, centerLng], buildings);
-        } else {
-            // 建築物がない場合は東京を中心に設定
-            initMap([35.6762, 139.6503], []);
-        }
+        // ページ情報が設定されるまで少し待つ
+        setTimeout(() => {
+            if (buildings.length > 0) {
+                // 建築物がある場合は、最初の建築物を中心に設定
+                const centerLat = buildings[0].lat;
+                const centerLng = buildings[0].lng;
+                initMap([centerLat, centerLng], buildings);
+            } else {
+                // 建築物がない場合は東京を中心に設定
+                initMap([35.6762, 139.6503], []);
+            }
+        }, 100);
     }
     
     // 検索フォームの送信

@@ -45,7 +45,7 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
             b.buildingTypes LIKE :{$keywordParam} OR
             b.buildingTypesEn LIKE :{$keywordParam} OR
             b.location LIKE :{$keywordParam} OR
-            b.locationEn LIKE :{$keywordParam} OR
+            b.locationEn_from_datasheetChunkEn LIKE :{$keywordParam} OR
             b.architectDetails LIKE :{$keywordParam} OR
             ia.name_ja LIKE :{$keywordParam} OR
             ia.name_en LIKE :{$keywordParam}
@@ -497,14 +497,49 @@ function t($key, $lang = 'ja') {
  * ページネーションの範囲を取得
  */
 function getPaginationRange($currentPage, $totalPages, $maxVisible = 5) {
-    $start = max(1, $currentPage - floor($maxVisible / 2));
-    $end = min($totalPages, $start + $maxVisible - 1);
-    
-    if ($end - $start + 1 < $maxVisible) {
-        $start = max(1, $end - $maxVisible + 1);
+    // 総ページ数がmaxVisible以下の場合は全て表示
+    if ($totalPages <= $maxVisible) {
+        $range = range(1, $totalPages);
+    } else {
+        $range = [];
+        
+        // 1ページ目を必ず含める
+        $range[] = 1;
+        
+        // 現在のページ周辺のページを計算
+        $start = max(2, $currentPage - floor(($maxVisible - 3) / 2));
+        $end = min($totalPages - 1, $start + $maxVisible - 3);
+        
+        // 開始位置を調整（最終ページが含まれるように）
+        if ($end >= $totalPages - 1) {
+            $end = $totalPages - 1;
+            $start = max(2, $end - $maxVisible + 3);
+        }
+        
+        // 中間のページを追加（重複を避ける）
+        for ($i = $start; $i <= $end; $i++) {
+            if ($i > 1 && $i < $totalPages && !in_array($i, $range)) {
+                $range[] = $i;
+            }
+        }
+        
+        // 最終ページを必ず含める（1ページ目でない場合）
+        if ($totalPages > 1) {
+            $range[] = $totalPages;
+        }
+        
+        // ソートして重複を除去
+        $range = array_unique($range);
+        sort($range);
     }
     
-    return range($start, $end);
+    // デバッグ情報を追加
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        error_log("getPaginationRange: currentPage=$currentPage, totalPages=$totalPages, maxVisible=$maxVisible");
+        error_log("getPaginationRange: range=" . implode(',', $range));
+    }
+    
+    return $range;
 }
 ?>
 

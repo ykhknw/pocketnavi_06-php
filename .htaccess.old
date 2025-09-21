@@ -1,0 +1,7 @@
+RewriteEngine On
+
+# Redirect /buildings/{slug} to index.php?building_slug={slug}
+RewriteRule ^buildings/([^/]+)/?$ index.php?building_slug=$1 [L,QSA]
+
+# Optional: Redirect /buildings/{slug}/ to /buildings/{slug} (remove trailing slash)
+RewriteRule ^buildings/([^/]+)/$ /buildings/$1 [R=301,L]

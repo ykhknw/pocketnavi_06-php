@@ -34,7 +34,7 @@ CREATE TABLE buildings_table_2 (
 );
 
 -- 個別建築家テーブル
-CREATE TABLE individual_architects (
+CREATE TABLE individual_architects_3 (
     individual_architect_id INT AUTO_INCREMENT PRIMARY KEY,
     name_ja VARCHAR(255) NOT NULL,
     name_en VARCHAR(255),
@@ -52,7 +52,7 @@ CREATE TABLE architects_table (
 );
 
 -- 建築家構成テーブル
-CREATE TABLE architect_compositions (
+CREATE TABLE architect_compositions_2 (
     composition_id INT AUTO_INCREMENT PRIMARY KEY,
     architect_id INT NOT NULL,
     individual_architect_id INT NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE architect_compositions (
     CONSTRAINT chk_order_index CHECK (order_index >= 0),
     UNIQUE(architect_id, individual_architect_id),
     FOREIGN KEY (architect_id) REFERENCES architects_table(architect_id) ON DELETE CASCADE,
-    FOREIGN KEY (individual_architect_id) REFERENCES individual_architects(individual_architect_id) ON DELETE CASCADE
+    FOREIGN KEY (individual_architect_id) REFERENCES individual_architects_3(individual_architect_id) ON DELETE CASCADE
 );
 
 -- 建築物-建築家関連テーブル
@@ -122,26 +122,26 @@ CREATE INDEX idx_buildings_areas ON buildings_table_2(areas);
 CREATE INDEX idx_buildings_slug ON buildings_table_2(slug);
 
 -- 建築家関連インデックス
-CREATE INDEX idx_individual_architects_slug ON individual_architects(slug);
-CREATE INDEX idx_individual_architects_name_ja ON individual_architects(name_ja);
-CREATE INDEX idx_individual_architects_name_en ON individual_architects(name_en);
+CREATE INDEX idx_individual_architects_slug ON individual_architects_3(slug);
+CREATE INDEX idx_individual_architects_name_ja ON individual_architects_3(name_ja);
+CREATE INDEX idx_individual_architects_name_en ON individual_architects_3(name_en);
 
 -- 関連テーブルインデックス
 CREATE INDEX idx_building_architects_building ON building_architects(building_id);
 CREATE INDEX idx_building_architects_architect ON building_architects(architect_id);
-CREATE INDEX idx_architect_compositions_architect ON architect_compositions(architect_id);
-CREATE INDEX idx_architect_compositions_individual ON architect_compositions(individual_architect_id);
+CREATE INDEX idx_architect_compositions_architect ON architect_compositions_2(architect_id);
+CREATE INDEX idx_architect_compositions_individual ON architect_compositions_2(individual_architect_id);
 -- architect_websites_3テーブルは存在しないため、インデックスも不要
 
 -- 複合インデックス
 CREATE INDEX idx_buildings_search ON buildings_table_2(prefectures, completionYears, lat, lng);
 CREATE INDEX idx_buildings_type_location ON buildings_table_2(buildingTypes, lat, lng);
 CREATE INDEX idx_building_architects_composite ON building_architects(building_id, architect_id);
-CREATE INDEX idx_architect_compositions_composite ON architect_compositions(architect_id, individual_architect_id);
+CREATE INDEX idx_architect_compositions_composite ON architect_compositions_2(architect_id, individual_architect_id);
 
 -- 全文検索インデックス（横断検索対応）
 -- MySQL 5.7以降でサポート
 -- CREATE FULLTEXT INDEX idx_buildings_fulltext_ja ON buildings_table_2(title, buildingTypes, location, architectDetails);
 -- CREATE FULLTEXT INDEX idx_buildings_fulltext_en ON buildings_table_2(titleEn, buildingTypesEn, locationEn);
--- CREATE FULLTEXT INDEX idx_individual_architects_fulltext ON individual_architects(name_ja, name_en);
+-- CREATE FULLTEXT INDEX idx_individual_architects_fulltext ON individual_architects_3(name_ja, name_en);
 
